@@ -3,5 +3,10 @@
 }
 
 <div class="text-left">
-    <h1 class="display-4">Whatsapp</h1>    
+    <h1 class="display-4">Whatsapp</h1>
+    <a class="btn btn-primary" asp-area="" asp-controller="Whatsapp" asp-action="GetQRAccess">Get QR Code Access</a>
+    @if (ViewBag.Base64Image != null)
+    {
+        <img src="@ViewBag.Base64Image" alt="QR Code" />
+    }  
 </div>

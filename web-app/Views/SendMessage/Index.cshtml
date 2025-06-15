@@ -1,0 +1,145 @@
+@{
+    ViewData["Title"] = "Send Message";
+}
+
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<div class="container mt-4">
+    <h2>Send Message</h2>
+
+    <div class="mb-3">
+        <label class="form-check-label me-3">
+            <input type="radio" name="messageType" value="single" checked class="form-check-input" onclick="toggleMessageType('single')" /> Single Message
+        </label>
+        <label class="form-check-label">
+            <input type="radio" name="messageType" value="broadcast" class="form-check-input" onclick="toggleMessageType('broadcast')" /> Broadcast Message
+        </label>
+    </div>
+
+    <!-- Single Message Form -->
+    <div id="singleMessageForm">
+        <form asp-action="SendMessage" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label for="singleContact">Contact:</label>
+                <div x-data="contactSelect()" class="position-relative">
+                    <input
+                        type="text"
+                        x-model="search"
+                        x-on:input="fetchContacts"
+                        placeholder="Search contact..."
+                        class="form-control"
+                    />
+
+                    <div x-show="open" class="dropdown-menu show w-100 shadow mt-1" style="max-height: 200px; overflow-y: auto;">
+                        <template x-for="contact in contacts" :key="contact.number">
+                            <a href="#" class="dropdown-item" x-text="contact.name" x-on:click.prevent="selectContact(contact)"></a>
+                        </template>
+                        <div x-show="contacts.length === 0" class="dropdown-item disabled">No results</div>
+                    </div>
+
+                    <input type="hidden" name="Numbers[0]" :value="selected?.number" />
+                    <div class="mt-2" x-show="selected">
+                        Selected: <strong x-text="selected.name"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="singleMessage">Message:</label>
+                <textarea class="form-control" id="singleMessage" name="Message" rows="4" placeholder="Type your message..."></textarea>
+            </div>
+
+            <div class="mb-3">
+                @* <button type="button" class="btn btn-light">😊 Emoji</button>
+                <button type="button" class="btn btn-light">📎 Upload</button>
+                <button type="button" class="btn btn-light">🔍 Preview</button> *@
+            </div>
+
+            <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+    </div>
+
+    <!-- Broadcast Message Form -->
+    <div id="broadcastMessageForm" style="display: none;">
+        <div class="mb-3">
+            <label>Select Contacts:</label>
+            @* <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
+                <label class="form-check-label" for="selectAll">Select All</label>
+            </div>
+
+
+            <div class="form-check">
+                <input class="form-check-input contact-checkbox" type="checkbox" id="contact1">
+                <label class="form-check-label" for="contact1">Jane Doe</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input contact-checkbox" type="checkbox" id="contact2">
+                <label class="form-check-label" for="contact2">Alex Smith</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input contact-checkbox" type="checkbox" id="contact3">
+                <label class="form-check-label" for="contact3">John Lee</label>
+            </div> *@
+
+
+            
+        </div>
+
+        <div class="mb-3">
+            <label for="broadcastMessage">Message:</label>
+            <textarea class="form-control" id="broadcastMessage" name="Message" rows="4" placeholder="Type your message..."></textarea>
+        </div>
+
+        <div class="mb-3">
+            @* <button type="button" class="btn btn-light">😊 Emoji</button>
+            <button type="button" class="btn btn-light">📎 Upload</button>
+            <button type="button" class="btn btn-light">🔍 Preview</button> *@
+        </div>
+
+        <button class="btn btn-success">Send to Selected Contacts</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleMessageType(type) {
+            document.getElementById('singleMessageForm').style.display = type === 'single' ? 'block' : 'none';
+            document.getElementById('broadcastMessageForm').style.display = type === 'broadcast' ? 'block' : 'none';
+        }
+
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('.contact-checkbox');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+        }
+
+        function contactSelect() {
+            return {
+                search: '',
+                contacts: [],
+                selected: null,
+                open: false,
+                fetchContacts() {
+                    if (this.search.length < 1) {
+                        this.contacts = [];
+                        this.open = false;
+                        return;
+                    }
+
+                    fetch(`/Contact/Search?filter=${encodeURIComponent(this.search)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.contacts = data;
+                            this.open = true;
+                        });
+                },
+                selectContact(contact) {
+                    this.selected = contact;
+                    this.open = false;
+                    this.search = contact.name;
+                }
+            };
+        }
+    </script>
+}

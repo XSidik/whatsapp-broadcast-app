@@ -3,16 +3,17 @@ namespace web_app.Controllers;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using web_app.DTOs;
 using web_app.Models;
 using web_app.Services;
 
 [Authorize]
-public class WhatsappController : Controller
+public class SendMessageController : Controller
 {
-    private readonly ILogger<WhatsappController> _logger;
+    private readonly ILogger<SendMessageController> _logger;
     private readonly WhatsappApiService _whatsappApiService;
 
-    public WhatsappController(ILogger<WhatsappController> logger, WhatsappApiService whatsappApiService)
+    public SendMessageController(ILogger<SendMessageController> logger, WhatsappApiService whatsappApiService)
     {
         _logger = logger;
         _whatsappApiService = whatsappApiService;
@@ -23,13 +24,21 @@ public class WhatsappController : Controller
         return View();
     }
 
-    public async Task<IActionResult> GetQRAccess()
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendMessage(SendMessageDto sendMessageDto)
     {
-        var base64Image = await _whatsappApiService.GetQRAccessBase64ImageAsync();
+       if (!ModelState.IsValid)
+            return View("Index");
 
-        ViewBag.Base64Image = base64Image;
-        return View("Index");
-    }    
+        
+        foreach (var number in sendMessageDto.Numbers)
+        {
+            await _whatsappApiService.SendMessageAsync(number, sendMessageDto.Message);
+        }
+        
+        return RedirectToAction("Index");
+    }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

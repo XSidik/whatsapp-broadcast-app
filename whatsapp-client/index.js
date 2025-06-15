@@ -37,12 +37,10 @@ app.get('/qr', (req, res) => {
 
 // Broadcast endpoint
 app.post('/send', async (req, res) => {
-    const { numbers, message } = req.body;
+    const { number, message } = req.body;
 
     try {
-        for (const number of numbers) {
-            await client.sendMessage(number + "@c.us", message);
-        }
+        await client.sendMessage(number + "@c.us", message);
         res.status(200).send({ status: "Messages sent!" });
     } catch (error) {
         console.error(error);
