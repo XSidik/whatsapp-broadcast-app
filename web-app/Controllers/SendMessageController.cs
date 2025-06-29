@@ -34,6 +34,7 @@ public class SendMessageController : Controller
         
         foreach (var number in sendMessageDto.Numbers)
         {
+            await Task.Delay(10000); // Delay for 10 seconds to avoid whatsapp ban account       
             await _whatsappApiService.SendMessageAsync(number, sendMessageDto.Message);
         }
         

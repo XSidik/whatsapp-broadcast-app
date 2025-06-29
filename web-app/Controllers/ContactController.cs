@@ -278,12 +278,34 @@ public class ContactController : Controller
                      .Take(10)
                      .Select(c => new
                      {
-                         number = c.WANumber,
-                         name = c.Name
+                        number = c.WANumber,
+                        name = c.Name
                      })
                      .ToList();
 
         return Json(results);
+    }
+
+     public IActionResult GetContacts(string search = "", int page = 1, int pageSize = 10)
+    {
+       var contacts = _context.Contacts.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            contacts = contacts.Where(c =>
+                c.Name!.Contains(search) ||
+                c.WANumber!.Contains(search));
+        }
+
+        var totalItems = contacts.Count();
+
+        var items = contacts
+            .OrderBy(c => c.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Json(new { items, totalItems });
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

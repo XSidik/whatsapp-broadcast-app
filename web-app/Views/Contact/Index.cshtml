@@ -39,14 +39,12 @@
         <div class="col-md-3">            
             <a class="btn btn-primary" asp-area="" asp-controller="Contact" asp-action="UploadVcf">Upload Data</a>
             <a class="btn btn-primary" asp-area="" asp-controller="Contact" asp-action="Create">Create New</a>
-            <a class="btn btn-primary" asp-area="" asp-controller="Whatsapp" asp-action="Create">Create New</a>
         </div>
     </form>
 
     <table class="table table-bordered">
         <thead class="">
-            <tr>
-                <th><input type="checkbox" id="selectAll" /></th>
+            <tr>                
                 <th>Number</th>
                 <th>Name</th>
                 <th>WA Number</th>
@@ -65,9 +63,6 @@
             {
                 rowNumber++;
                 <tr>
-                    <td>
-                       <input type="checkbox" class="selectItem" value="@contact.Id" onchange="toggleItem(this)" />
-                    </td>
                     <td>@rowNumber</td>
                     <td>@contact.Name</td>
                     <td>@contact.WANumber</td>
@@ -164,53 +159,3 @@
     </nav>
 
 </div>
-
-<script>
-    const STORAGE_KEY = "selectedIds";
-
-    function getStoredIds() {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    }
-
-    function saveStoredIds(ids) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-    }
-
-    function toggleItem(checkbox) {
-        let ids = getStoredIds();
-        const id = parseInt(checkbox.value);
-
-        if (checkbox.checked) {
-            if (!ids.includes(id)) ids.push(id);
-        } else {
-            ids = ids.filter(x => x !== id);
-        }
-
-        saveStoredIds(ids);
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-        const ids = getStoredIds();
-
-        document.querySelectorAll(".selectItem").forEach(cb => {
-            if (ids.includes(parseInt(cb.value))) cb.checked = true;
-        });
-
-        const selectAll = document.getElementById("selectAll");
-        if (selectAll) {
-            selectAll.addEventListener("change", function () {
-                document.querySelectorAll(".selectItem").forEach(cb => {
-                    cb.checked = selectAll.checked;
-                    toggleItem(cb);
-                });
-            });
-        }
-    });
-
-    document.getElementById("bulkForm").addEventListener("submit", function () {
-        const ids = getStoredIds();
-        document.getElementById("selectedIdsHidden").value = ids.join(",");
-        localStorage.removeItem(STORAGE_KEY);
-    });
-</script>
-
