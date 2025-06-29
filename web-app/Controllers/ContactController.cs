@@ -36,7 +36,7 @@ public class ContactController : Controller
         // Add filtering and sorting logic here as needed
         if (!string.IsNullOrEmpty(filter))
         {
-            query = query.Where(c => c.Name!.ToLower().Contains(filter.ToLower()));
+            query = query.Where(c => c.Name!.ToLower().Contains(filter.ToLower()) || c.WANumber!.ToLower().Contains(filter.ToLower()));
         }
 
         query = (sortBy.ToLower(), sortOrder.ToLower()) switch
@@ -75,6 +75,16 @@ public class ContactController : Controller
     {
         if (ModelState.IsValid)
         {
+            // check wa_number exists
+            var existing = await _context.Contacts.FirstOrDefaultAsync(c => c.WANumber == contact.WANumber && !c.IsDeleted);
+
+            if (existing != null)
+            {
+                ModelState.AddModelError("WANumber", "WA Number already exists");
+                return View(contact);
+            }
+           
+            contact.WANumber = ValidateWANumber(contact.WANumber!);
             contact.CreatedAt = DateTime.UtcNow;
             contact.CreatedBy = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             _context.Add(contact);
@@ -112,8 +122,16 @@ public class ContactController : Controller
                 if (existing == null || existing.IsDeleted)
                     return NotFound();
 
+                // check wa_number exists
+                var existingContact = await _context.Contacts.FirstOrDefaultAsync(c => c.WANumber == contact.WANumber && c.Id != id);
+                if (existingContact != null)
+                {
+                    ModelState.AddModelError("WANumber", "WA Number already exists");
+                    return View(contact);
+                }                
+
                 existing.Name = contact.Name;
-                existing.WANumber = contact.WANumber;
+                existing.WANumber = ValidateWANumber(contact.WANumber!);
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.UpdatedBy = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -165,6 +183,129 @@ public class ContactController : Controller
     private bool ContactExists(int id)
     {
         return _context.Contacts.Any(e => e.Id == id && !e.IsDeleted);
+    }
+
+    private string ValidateWANumber(string number)
+    {
+        number.Replace("-", "")
+                    .Replace(".", "")
+                    .Replace("(", "")
+                    .Replace(")", "")
+                    .Replace(" ", "")
+                    .Replace("+", "");
+                     
+        if (number.StartsWith("0"))
+        {
+            number = string.Concat("62", number.AsSpan(1));
+        }
+
+        return number;
+    }
+
+    public IActionResult UploadVcf()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UploadVcf(IFormFile vcfFile)
+    {
+        if (vcfFile == null || vcfFile.Length == 0)
+            return BadRequest("File is empty");
+
+        using var reader = new StreamReader(vcfFile.OpenReadStream());
+        var lines = await reader.ReadToEndAsync();
+        var contacts = ParseVcf(lines);
+        var newContacts = new List<Contact>();
+
+        // You can optimize with bulk insert if needed
+        foreach (var contact in contacts)
+        {
+            if (!string.IsNullOrEmpty(contact.WANumber) && contact.WANumber.Length > 10)
+            {
+                contact.Name = contact.Name;
+                contact.WANumber = ValidateWANumber(contact.WANumber);
+                contact.CreatedAt = DateTime.UtcNow;
+                contact.CreatedBy = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+                // check wa_number exists
+                var existing = await _context.Contacts.FirstOrDefaultAsync(c => c.WANumber == contact.WANumber);
+                if (existing != null)
+                    continue;
+
+                newContacts.Add(contact);
+            }
+        }
+
+        _context.Contacts.AddRange(newContacts);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Imported successfully", count = contacts.Count, totalUploaded = newContacts.Count });
+    }
+
+    private static List<Contact> ParseVcf(string fileContent)
+    {
+        var contacts = new List<Contact>();
+        using var reader = new StringReader(fileContent);
+        string? line;
+        Contact? contact = null;
+
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (line.StartsWith("BEGIN:VCARD"))
+                contact = new Contact { Name = "", WANumber = "" };
+            else if (line.StartsWith("FN:") && contact != null)
+                contact.Name = line.Substring(3);
+            else if (line.StartsWith("TEL") && contact != null)
+                contact.WANumber = line.Split(':')[1];
+            // else if (line.StartsWith("EMAIL") && contact != null)
+            //     contact.Email = line.Split(':')[1];
+            else if (line.StartsWith("END:VCARD") && contact != null)
+            {
+                contacts.Add(contact);
+                contact = null;
+            }
+        }
+
+        return contacts;
+    }
+
+    public IActionResult Search(string? filter = null)
+    {
+        var results = _context.Contacts
+                     .Where(c => c.Name!.Contains(filter!))
+                     .OrderBy(c => c.Name)
+                     .Take(10)
+                     .Select(c => new
+                     {
+                        number = c.WANumber,
+                        name = c.Name
+                     })
+                     .ToList();
+
+        return Json(results);
+    }
+
+     public IActionResult GetContacts(string search = "", int page = 1, int pageSize = 10)
+    {
+       var contacts = _context.Contacts.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            contacts = contacts.Where(c =>
+                c.Name!.Contains(search) ||
+                c.WANumber!.Contains(search));
+        }
+
+        var totalItems = contacts.Count();
+
+        var items = contacts
+            .OrderBy(c => c.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Json(new { items, totalItems });
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

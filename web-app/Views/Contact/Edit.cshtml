@@ -4,23 +4,24 @@
     ViewData["Title"] = "Edit Contact";
 }
 
-<h1>Edit Contact</h1>
+<h1>@ViewData["Title"]</h1>
+<div class="col-12 col-md-6 col-lg-4">
+    <form asp-action="Edit">
+        <input type="hidden" asp-for="Id" />
 
-<form asp-action="Edit">
-    <input type="hidden" asp-for="Id" />
+        <div class="form-group mb-3">
+            <label asp-for="Name"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
 
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
+        <div class="form-group mb-3">
+            <label asp-for="WANumber"></label>
+            <input asp-for="WANumber" class="form-control" />
+            <span asp-validation-for="WANumber" class="text-danger"></span>
+        </div>
 
-    <div class="form-group">
-        <label asp-for="WANumber"></label>
-        <input asp-for="WANumber" class="form-control" />
-        <span asp-validation-for="WANumber" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Update</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
+        <button type="submit" class="btn btn-primary">Update</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

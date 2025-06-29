@@ -15,7 +15,7 @@
 
         <div class="form-group mb-3">
             <label asp-for="WANumber"></label>
-            <input asp-for="WANumber" class="form-control" />
+            <input asp-for="WANumber" type="tel" class="form-control" placeholder="e.g. 081234567890" pattern="^[0-9+]{10,15}$" title="Please enter a valid phone number (10–15 digits)"/>
             <span asp-validation-for="WANumber" class="text-danger"></span>
         </div>
 
